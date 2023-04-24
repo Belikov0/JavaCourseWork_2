@@ -14,7 +14,6 @@ public class AliPay extends DebitPayment{
         String[] buffer = this.getClass().toString().split("\\.");
         System.out.println(buffer[1]+" pays: "+_cost);
         super.payMethod(_cost, _payType);
-
     }
 
     @Override

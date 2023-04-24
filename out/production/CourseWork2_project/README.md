@@ -43,8 +43,39 @@
 ​	**程序思路与算法：**
 
 - 二重循环遍历图片每一个像素点，判断是否是噪点
+
   - 如果不是噪点，则`continue`
+
   - 如果是噪点，将噪点周围两圈的所有非噪点的颜色平均灰度赋值给当前噪点
+
+    ```java
+    static int handleNoise(int _y, int _x, int[][] _matrixData){
+        ArrayList list = new ArrayList();
+        int sy = _y - 2;
+        int ey = _y + 2;
+        int sx = _x - 2;
+        int ex = _x + 2;
+        for (int i = sy; i <= ey; i++){
+            for (int j = sx; j <= ex; j++){
+                //Continue if the coordinate is illegal
+                if (!isLegalPixel(j, i, _matrixData))
+                    continue;
+                int grayscale = getGrayscale(_matrixData[i][j]);
+                //Continue if the pixel is a noise
+                if (isNoise(grayscale))
+                    continue;
+                list.add(grayscale);
+            }
+        }
+        int sum = 0;
+        for (int i = 0; i < list.size(); i++){
+            sum += (int)list.get(i);
+        }
+        int ave = (int)(sum/list.size());
+        return ave;
+    }
+    ```
+
   - 遍历到末尾后基本处理完毕
 
 ​	**代码运行结果：**
@@ -206,7 +237,8 @@
     }
     ```
 
-    
-
 ​	**代码运行结果：**
 
+![Graphics20230417_234116](pics\Solution_6_1.gif)
+
+![Graphics20230417_233527](pics\Solution_6_2.gif)
