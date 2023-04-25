@@ -7,7 +7,6 @@ import javax.swing.JPanel;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
-
 import static java.lang.Thread.sleep;
 
 public class LifeGame {
@@ -134,7 +133,8 @@ public class LifeGame {
 
         //  Create window and init GUI
         JFrame frame = new JFrame("Conway's Game of Life");
-        ImagePanel imagePanel = new ImagePanel(s256);   //Use image to set image data
+        //  Change file name to show different pics
+        ImagePanel imagePanel = new ImagePanel(s16);   //Use image to set image data
         frame.add(imagePanel);                          //Add panel to show image
         frame.setSize(800, 800);          //Set window size
         frame.setVisible(true);                         //Show the window
@@ -142,7 +142,7 @@ public class LifeGame {
         Thread.sleep(3000);
         // Every interval make the img into next turn
         for (int k = 0; k < 50000; k++){
-            Thread.sleep(40);
+            Thread.sleep(50);
             imagePanel.renewImage();
         }
     }

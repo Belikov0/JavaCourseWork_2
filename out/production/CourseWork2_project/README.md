@@ -6,6 +6,10 @@
 
 ​	**完成情况：完成全部功能**
 
+​	**UML类图：**
+
+![image-20230424221756901](pics\Solution_1_UML_1.png)![image-20230424222043404](pics\Solution_1_UML_2.png)
+
 **代码运行结果：**![Graphics](pics\Solution_1_Graphics.gif)
 
 ### 2. Nescafé
@@ -20,7 +24,7 @@
 
 ​	**完成情况：完成全部功能**
 
-**UML类图**：![image-20230415201913624](pics\Solution_3_UML.png)
+​	**UML类图**：![image-20230415201913624](pics\Solution_3_UML.png)
 
 ​	**代码运行结果：**
 
@@ -42,41 +46,177 @@
 
 ​	**程序思路与算法：**
 
-- 二重循环遍历图片每一个像素点，判断是否是噪点
+- **将过滤噪点`filter(String _fileIn, String _fileOut){}`分为如下几个步骤**
 
-  - 如果不是噪点，则`continue`
+  - 根据文件路径将图片加载为`BufferedImage`对象：`BufferedImage image = loadImage(_fileIn);`
 
-  - 如果是噪点，将噪点周围两圈的所有非噪点的颜色平均灰度赋值给当前噪点
+  - 将`BufferedImage`对象转换为一个二维数组，对应图片的每一个像素，存储的格式为`int`
+    四个字节分别表示`[alpha, red, green, blue]`四个通道：`int[][] m = getPixelData(image)`
+
+  - 对原图像数据调用过滤噪函数，得到存储了处理后图像颜色信息的二维数组：`int[][] n = medianFilter(m)`
+
+  - 将二位数组展开为一维数组，用于创建新图像：`int[] resData = flattenImage(n)`
+
+  - 调用函数，根据生成路径创建过滤后的新图像`createNewPng(resData, _fileOut)`
 
     ```java
-    static int handleNoise(int _y, int _x, int[][] _matrixData){
-        ArrayList list = new ArrayList();
-        int sy = _y - 2;
-        int ey = _y + 2;
-        int sx = _x - 2;
-        int ex = _x + 2;
-        for (int i = sy; i <= ey; i++){
-            for (int j = sx; j <= ex; j++){
-                //Continue if the coordinate is illegal
-                if (!isLegalPixel(j, i, _matrixData))
-                    continue;
-                int grayscale = getGrayscale(_matrixData[i][j]);
-                //Continue if the pixel is a noise
-                if (isNoise(grayscale))
-                    continue;
-                list.add(grayscale);
-            }
-        }
-        int sum = 0;
-        for (int i = 0; i < list.size(); i++){
-            sum += (int)list.get(i);
-        }
-        int ave = (int)(sum/list.size());
-        return ave;
+    static void filter(String _fileIn, String _fileOut){
+        BufferedImage image =  loadImage(_fileIn);		//first step
+        int[][] matrixData = getPixelData(image);		//second step
+        int[][] newPixelData = medianFilter(0, matrixData.length, 0, matrixData[0].length, matrixData);		//third step
+        int[] resData = flattenImage(newPixelData);		//forth step
+        createNewPng(matrixData.length, matrixData[0].length, resData, _fileOut); //last step
     }
     ```
 
-  - 遍历到末尾后基本处理完毕
+- **加载图像为BufferedImage对象**
+
+  - 调用函数`loadImage(_fileIn)`
+
+  - 使用`File file = new File(_fileIn)`将图片文件作为文件类型加载进java文件
+
+  - 使用`try-catch语句`调用图像输入输出的静态方法`ImageIO.read(file)`将文件读取为`BufferedImage`类
+
+    ```java
+    BufferedImage img = null;
+    try {
+        //Confirm the file path
+        System.out.println(file.getCanonicalPath());
+        img = ImageIO.read(file);
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+    ```
+
+  - 将`img`作为返回值返回，在`filter`函数中接收
+
+    ```java
+    BufferedImage image =  loadImage(_fileIn);
+    ```
+
+- **将BufferedImage转换为二维数组数据**
+
+  - 调用`getPixelData(image)`，将`BufferedImage`像素数据转换成可以处理的二维数组像素数据
+
+  - 在处理的过程中，调用`BufferedImage.getRGB(int, int)`方法，将每一点的`RGB`数据返回
+
+    - RGB数据是一个四个字节的`int`类型数值，其中从高到低四个字节分别表示：`alpha`值、红色通道、绿色通道、蓝色通道，取值分别为`0~255`，使用8位二进制数，即一个字节表示。每一个`int`值表示对应位置像素的颜色值
+    - `getRGB`方法是`(int xAxios, int yAxios)`，与二维数组的`int[row][col]`刚好是对称关系，因此要交换次序
+
+    ```java
+    public static int[][] getPixelData(BufferedImage _image){
+        int width = _image.getWidth();
+        int height = _image.getHeight();
+        int[][] matrixData = new int[height][width];
+        for (int i = 0; i < height; i++){
+            for (int j = 0; j < width; j++){
+                //Pay attention to the coordinate relationship
+                //getRGB(j, i) means coordinate (j, i)
+                //which means the ith row and the jth column
+                matrixData[i][j] = _image.getRGB(j, i);
+            }
+        }
+        return matrixData;
+    }
+    ```
+
+- ==**将二维数组进行处理，判断每一个像素点是否为噪点并处理**==
+
+  - 创建新数组用于存储过滤后的图像像素数据
+
+  - 二维循环遍历数组，对每一个像素
+
+    - 调用`getGrayscale`获取该像素点的**灰度**
+
+      ```java
+      public static int getGrayscale(int _pixel){
+      		return _pixel & 0x000000ff;
+      	}
+      ```
+
+      由于是灰度图片，后三个字节的值可以表示该像素的灰度值(0~255)，使用按位与运算返回**灰度值**
+
+    - 根据灰度值调用`isNoise(grayscale)`判断是否为噪点
+
+      ```java
+      static boolean isNoise(int _grayscale){
+          return _grayscale == 0x00 || _grayscale == 0xff;
+      }
+      ```
+
+      根据灰度值，如果是白色`0xff`或者黑色`0x00`则判断为噪点
+
+      - 如果不是噪点，则直接将该像素点的值赋值给新二维数组`newMat`
+
+      - ==**如果是噪点，调用处理噪点函数`handleNoise`将噪点周围两圈的所有非噪点的颜色平均灰度赋值给当前噪点（处理算法）**==
+
+
+    ```java
+    public static int[][] medianFilter(int _startY, int _endY, int _startX, int _endX, int[][] _matrixData){
+    		int[][] newMatrix = new int[_endY-_startY][_endX-_startX];
+    		for (int i = _startY; i < _endY; i++){
+    			for (int j = _startX; j < _endX; j++){
+    				//	the result of image.getRGB occupied 4 bytes
+    				//	respectively means alpha, red, green, blue
+    				int curPixel = _matrixData[i][j];
+    				//	The alpha channel is always 255, and red == green == blue
+    				//	Use an integer ’grayscale' to stand for the color
+    				int grayscale = getGrayscale(curPixel);
+    				if (isNoise(grayscale)){
+    					int newGrayscale = handleNoise(i, j, _matrixData);
+    					//	Convert the grayscale into RGB data
+    					// 	The four byte will be [0xff][newGrayscale][newGrayscale][newGrayscale]
+    					int newPixel = 255;
+    					for (int k = 0; k < 3; k++){
+    						newPixel = (newPixel << 8) | newGrayscale;
+    					}
+    					newMatrix[i][j] = newPixel;
+    				}else{
+    					newMatrix[i][j] = curPixel;
+    				}
+    			}
+    		}
+    		return newMatrix;
+    	}
+    ```
+
+    - `handleNoise`获取周围两圈的灰度数据，使用二重循环判断是否为一个合法的像素点，即**数组下标不越界**并且**是一个噪点像素**。将所有符合这些条件的像素取灰度平均值，作为这个噪点新的灰度值
+
+    - 返回后通过下面代码将灰度值转换成`RGB`格式的`int`值，赋值给新二维数组
+
+      ```java
+      int newPixel = 255;
+      for (int k = 0; k < 3; k++){
+          newPixel = (newPixel << 8) | newGrayscale;
+      }
+      ```
+
+  - 二维数组遍历完后，会得到一个新的二维数组，存储了处理噪点后的图像数据，并返回
+
+- 由于创建图像文件需要一维数组，将二维数组摊平为一维数组
+
+- 使用一维数组创建图片文件
+
+  - 根据原有图片的宽高创建新图像文件：`BufferedImage bufferedImage = new BufferedImage(_width, _height, BufferedImage.TYPE_INT_RGB);`宽度与高度与之前相同
+  - 使用`setRGB`函数，用存储图像`RGB`数据的一维数组作为参数传入，作为`BufferedImage`的图像数据
+  - 根据输出路径创建文件，调用`ImageIO.write()`静态方法，将`BufferedImage`图像数据写为`png`格式的文件输出
+
+  ```java
+  static void createNewPng(int _height, int _width, int[] _resData, String _fileOut){
+      //Read data into new buffered image
+      BufferedImage bufferedImage = new BufferedImage(_width, _height, BufferedImage.TYPE_INT_RGB);
+      bufferedImage.setRGB(0, 0, _width, _height, _resData, 0, _width);
+      try {
+          File file = new File(_fileOut);
+          //Render the image to output file
+          ImageIO.write((RenderedImage) bufferedImage, "png", file);
+      }catch (IOException e){
+          e.printStackTrace();
+      }
+  }
+  ```
+
+  运行完成后，在项目路径可以看到文件名为`_fileOut`的处理好噪点的图片如下
 
 ​	**代码运行结果：**
 
@@ -90,7 +230,100 @@
 
 ​	**程序思路和算法：**
 
-- 对每个当前的生命数据，新建一个二维数组用来存储下一轮的生命数据
+- 使用`JFram`创建要显示图片的窗口
+
+- 继承`JPanel`创建`ImagePanel`用来存储要显示的图像，构造函数的参数为初态文件路径
+
+  - 在构造函数中使用`FileInputStream`来读取初态图像文件
+
+  - 将读取到的输入文件流作为参数传入`BufferReader`的构造函数得到一个`bufferReader`
+
+    其内容如下
+
+    - 第一次`readLine()`, 返回文件类型,p2或者p5，可以忽略
+    - 第二次`readLine()`, 返回一个字符串数组，分别存储了图像的宽和高，将宽高存下
+
+    ```java
+    String[] sizeStr = bufferedReader.readLine().split(" ");
+    this.width = Integer.parseInt(sizeStr[0]);
+    this.height = Integer.parseInt(sizeStr[1]);
+    ```
+
+    - 第三次`readLine()`, 返回图像的**二维数组数据字符串**，使用如下方式存储为二维数组
+
+      ```java
+      imageData = new int[height][width];
+      for (int i = 0; i < height; i++){
+          for (int j = 0; j < width; j++){
+              int tmp = 255;
+              // return the color value of each pixel typed int ranged [0, 255]
+              int currentColor = bufferedReader.read();
+              // Set the color into RGB value
+              for (int k = 0; k < 3; k++){
+                  tmp = (tmp << 8) | currentColor;
+              }
+              imageData[i][j] = tmp;
+          }
+      }
+      ```
+
+  - 使用得到的二维数组数据，配合上一题中的扁平化函数，将图像数据生成`bufferedImage`
+
+    ```java
+    // Init bufferedImage
+    bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+                //  Use flattenImage() implemented in Solution_5 to convert a 2d matrix into 1d array
+                bufferedImage.setRGB(0, 0, width, height, MedianFilter.flattenImage(imageData), 0, width);
+    ```
+
+  - 至此，在`ImagePanel`中保留了如下四个成员变量
+
+    ```java
+    // 保存每一轮用于显示的图像数据
+    BufferedImage bufferedImage;
+    // 保存每一轮用于显示的像素颜色数据
+    int[][] imageData;
+    //	图像宽度
+    int width;
+    //	图像高度
+    int height;
+    ```
+
+- 在主窗口中，添加`imagePanel`组件，使图像能在`frame`中显示
+
+  ```java
+  frame.add(imagePanel);            //Add panel to show image
+  frame.setSize(800, 800);          //Set window size
+  frame.setVisible(true);           //Show the window
+  ```
+
+- 循环调用`imagePanel`的成员方法`renewImage()`，并配合`Thread.sleep`按一定频率刷新显示的图像
+
+  ```java
+  Thread.sleep(1000);
+  // Every interval make the img into next turn
+  for (int k = 0; k < 50000; k++){
+      Thread.sleep(100);
+      imagePanel.renewImage();
+  }
+  ```
+
+- 在`renewImage()`中，会调用实现好的`getNextTurn`方法，`getNextTurn`方法会根据当前存储的`imageData`的像素数据和游戏规则生成下一轮的图像数据，并将该数据用于更新图像
+
+  ```java
+  public void renewImage(){
+      // 获取下一轮的数据
+      int[][] newData = LifeGame.getNextTurn(0, this.height, 0, this.width, this.getImageData());
+      // 设置为二维数组的数据
+      this.setImageData(newData);
+      // 用imageData数据生成bufferedImage数据
+      this.renewBuffer();
+      // 调用重写方法paintComponent()绘图
+      this.updateUI();
+  }
+  ```
+
+- `getNextTurn`方法中对每个当前的生命数据，新建一个二维数组用来存储下一轮的生命数据
 
   - 遍历二维数组，对每一个像素点，即`cell`，获取它本身的生存状态和周围8个细胞的生存状态
 
@@ -177,65 +410,7 @@
     }
     ```
 
-  - 在`ImagePanel`中更新成员变量`imageData`后并更新 `BufferedImage`，并调用方法`updateUI`刷新显示，该方法会在一个计时循环中被反复调用，以获得变化的图像。成员变量`imageData`会通过`getImageData`方法在每一次需要获取下一轮数据时被调用
-
-    ```java
-    // 在循环中调用用于更新团
-    public void renewImage(){
-        //	接收下一轮的数据
-        int[][] newData = LifeGame.getNextTurn(0, this.height, 0, this.width, this.getImageData());
-        // set 方法更新成员变量
-        this.setImageData(newData);
-        // 更新图片数据
-        this.renewBuffer();
-        this.updateUI();
-    }
-    
-    // Getters
-    public int[][] getImageData(){
-        return imageData;
-    }
-    
-    // Setters, do not provide the setter of width and height
-    // Because they are only dependent on the image size
-    public void setImageData(int[][] _newData){
-        imageData = _newData;
-    }
-    
-    // Renew the content of variable bufferedImage by the newly set rgb image data
-    public void renewBuffer(){
-        //  Use flattenImage() implemented in Solution_5 to convert a 2d matrix into 1d array
-        bufferedImage.setRGB(0, 0, width, height, MedianFilter.flattenImage(imageData), 0, width);
-    }
-    ```
-
-  - 在`main`方法中，循环调用上述方法，达到获得动态图片的效果
-
-    ```java
-    public static void main(String[] args) throws InterruptedException {
-        // File names
-        String s16 = "16x16.pgm";
-        String s64 = "64x64.pgm";
-        String s128 = "128x128.pgm";
-        String s256 = "256x256.pgm";
-        String s512 = "512x512.pgm";
-        String s5120 = "5120x5120.pgm";
-    
-        //  Create window and init GUI
-        JFrame frame = new JFrame("Conway's Game of Life");
-        ImagePanel imagePanel = new ImagePanel(s16);   //Use image to set image data
-        frame.add(imagePanel);                          //Add panel to show image
-        frame.setSize(800, 800);          //Set window size
-        frame.setVisible(true);                         //Show the window
-    
-        Thread.sleep(3000);
-        // Every interval make the img into next turn
-        for (int k = 0; k < 50000; k++){
-            Thread.sleep(40);
-            imagePanel.renewImage();
-        }
-    }
-    ```
+- 至此，随着循环定时运行，可以使得图片产生动态规律的效果
 
 ​	**代码运行结果：**
 

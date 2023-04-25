@@ -7,4 +7,5 @@ import java.awt.*;
 public interface Mover {
     void draw(Graphics surface);
     void setMover(int x, int y, Sprite sprite);
+    void setMovementVector(int _x, int _y);
 }

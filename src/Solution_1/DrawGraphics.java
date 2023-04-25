@@ -1,14 +1,9 @@
 package Solution_1;
 
-import Solution_1.GraphFactory.OvalFactory;
-import Solution_1.GraphFactory.RectangleFactory;
-import Solution_1.Graph.Oval;
-import Solution_1.Graph.Rectangle;
-import Solution_1.Mover.Bouncer;
+import Solution_1.Graph.Sprite;
+import Solution_1.Graph.GraphFactory;
 import Solution_1.Mover.Mover;
-import Solution_1.Mover.StraightMover;
-import Solution_1.MoverFactory.BouncerFactory;
-import Solution_1.MoverFactory.StraightMoverFactory;
+import Solution_1.Mover.MoverFactory;
 
 import java.awt.Color;
 import java.awt.Graphics;
@@ -35,10 +30,9 @@ public class DrawGraphics {
 //        Oval oval = new Oval(30, 20, Color.orange);
 
         // Create graphs using factories
-        RectangleFactory rectangleFactory = new RectangleFactory();
-        OvalFactory ovalFactory = new OvalFactory();
-        Rectangle rect = rectangleFactory.createGraph();
-        Oval oval = ovalFactory.createGraph();
+        GraphFactory graphFactory = new GraphFactory();
+        Sprite rect = graphFactory.createGraph("Rectangle");
+        Sprite oval = graphFactory.createGraph("Oval");
 
         // Set init value to graphs
         rect.setSprite(15, 20, Color.RED);
@@ -51,10 +45,10 @@ public class DrawGraphics {
         Bouncer movingSprite3 = new Bouncer(30, 50, rect);
     */
         // Create moving sprites from graphs using factory
-        BouncerFactory bouncerFactory = new BouncerFactory();
-        Bouncer movingSprite1 = bouncerFactory.createMover();
-        Bouncer movingSprite2 = bouncerFactory.createMover();
-        Bouncer movingSprite3 = bouncerFactory.createMover();
+        MoverFactory moverFactory = new MoverFactory();
+        Mover movingSprite1 = moverFactory.createMover("Bouncer");
+        Mover movingSprite2 = moverFactory.createMover("Bouncer");
+        Mover movingSprite3 = moverFactory.createMover("Bouncer");
 
         // Init bouncers
         movingSprite1.setMover(100, 170, rect);
@@ -73,9 +67,8 @@ public class DrawGraphics {
     */
 
         // Create straight mover from factory
-        StraightMoverFactory straightMoverFactory = new StraightMoverFactory();
-        StraightMover straightMover1 = straightMoverFactory.createMover();
-        StraightMover straightMover2 = straightMoverFactory.createMover();
+        Mover straightMover1 = moverFactory.createMover("StraightMover");
+        Mover straightMover2 = moverFactory.createMover("StraightMover");
 
         // Init straight mover
         straightMover1.setMover(200, 150, rect);
